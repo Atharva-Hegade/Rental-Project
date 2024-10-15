@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  role      Role      @default(USER) // Role: either USER or OWNER
+  rentals   Rental[]  // One-to-many relation with Rental
+  auditlog AuditLog[]
+  review Review[]
+  admin Admin[]
+  useractivity UserActivity[]
+}
+
+model Owner {
+  id        Int        @id @default(autoincrement())
+  name      String
+  email     String     @unique
+  equipment Equipment[] // One-to-many relation with Equipment
+}
+
+model Equipment {
+  id           Int       @id @default(autoincrement()) // Ensure id is an integer
+  description String
+  name      String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner        Owner     @relation(fields: [ownerId], references: [id])
+  ownerId      Int
+  rentals      Rental[]  // One-to-many relation with Rental
+  equipmentmaintenance EquipmentMaintenance[]
+}
+
+model Rental {
+  id           Int       @id @default(autoincrement())
+  startDate    DateTime
+  endDate      DateTime
+  status       String    @default("active")
+  user         User      @relation(fields: [userId], references: [id])
+  userId       Int
+  equipment    Equipment @relation(fields: [equipmentId], references: [id])
+  equipmentId  Int
+  transaction  Transaction[]
+  rentalstatushistory RentalStatusHistory[]
+  review Review[]
+
+}
+
+
+model AuditLog {
+  id            Int       @id @default(autoincrement())
+  entityType    String    // Type of entity (e.g., user, rental, equipment)
+  entityId      Int       // ID of the record being changed
+  action        String    // Action performed (create, update, d  elete)
+  timestamp     DateTime  @default(now()) // Time of the change
+  changedBy     Int       // ID of the user who made the change
+  previousValue  String?   // Previous value of the record
+  newValue      String?   // New value of the record
+
+  // Optional: Add relations if you have user table defined
+  user          User     @relation(fields: [changedBy], references: [id])
+}
+
+
+model Transaction {
+  id                Int       @id @default(autoincrement())
+  rentalId         Int
+  amount            Float
+  paymentMethod     String
+  transactionStatus String    @default("pending") // e.g., pending, completed, failed
+  transactionDate   DateTime  @default(now())
+
+  rental            Rental    @relation(fields: [rentalId], references: [id])
+}
+
+
+model RentalStatusHistory {
+  id         Int       @id @default(autoincrement())
+  rental     Rental    @relation(fields: [rentalId], references: [id])
+  rentalId   Int
+  status     String    // e.g., pending, active, completed, canceled
+  changedOn  DateTime  @default(now())
+  changedBy  String    // Can be 'admin' or 'user'
+}
+
+
+model EquipmentMaintenance {
+  id             Int       @id @default(autoincrement())
+  equipment     Equipment @relation(fields: [equipmentId], references: [id])
+  equipmentId   Int
+  maintenanceDate DateTime
+  maintenanceType String   // e.g., repair, routine check, etc.
+  notes          String?
+  cost           Float?
+  performedBy    String    // Maintenance person
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rental     Rental   @relation(fields: [rentalId], references: [id])
+  rentalId   Int
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  rating     Int      // Rating from 1 to 5
+  review     String?  // Review text
+  reviewDate DateTime @default(now())
+}
+
+model Discount {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique // Promo code
+  description       String
+  discountPercentage Float?   // Percentage discount (optional)
+  discountAmount    Float?   // Fixed amount discount (optional)
+  startDate         DateTime
+  endDate           DateTime
+  usageCount        Int      @default(0) // Count of how many times the code was used
+}
+
+model Admin {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  role        String    // Role (e.g., superadmin, manager)
+  permissions String    // Set of privileges associated with this admin
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model UserActivity {
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  activityType         String    // Type of activity (e.g., login, search, view)
+  activityDate         DateTime @default(now())
+  activityDescription  String    // Description of the activity
+
+  user                 User      @relation(fields: [userId], references: [id])
+}
+
+
+enum Role {
+  USER
+  OWNER
+}
