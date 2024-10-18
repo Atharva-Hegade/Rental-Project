@@ -12,7 +12,6 @@ import { ReviewModule } from './review/review.module';
 import { DiscountModule } from './discount/discount.module';
 import { AdminModule } from './admin/admin.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
-import { AuthService } from './auth/auth.service';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
