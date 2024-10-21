@@ -29,7 +29,7 @@ import { AuthModule } from './auth/auth.module';
     AdminModule,
     UserActivityModule,
     AuthModule,
-  ], // Add EquipmentModule here
+  ],
 
   controllers: [AppController],
 })

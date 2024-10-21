@@ -11,7 +11,7 @@ import {
 import { UserService } from './user.service';
 import { Prisma } from '@prisma/client';
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -27,11 +27,11 @@ export class UserController {
 
   @Put(':id')
   async updateUser(@Param('id') id: string, @Body() userData: Prisma.UserUpdateInput) {
-    return this.userService.updateUser(id, userData);
+    return this.userService.updateUser(Number(id), userData); // Convert id to number
   }
 
   @Delete(':id')
   async deleteUser(@Param('id') id: string) {
-    return this.userService.deleteUser(id);
+    return this.userService.deleteUser(Number(id)); // Convert id to number
   }
 }

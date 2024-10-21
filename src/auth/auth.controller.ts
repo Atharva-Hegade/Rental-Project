@@ -1,26 +1,44 @@
-import { Controller, Post, Get, Body, Req, Res, UseGuards } from '@nestjs/common';
+// src/auth/auth.controller.ts
+import { Controller, Post, Body, Req, UseGuards, Get , UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
-import { Prisma } from '@prisma/client';
-import { LocalAuthGuard } from './local.strategy';
-import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async register(@Body() data: Prisma.UserCreateInput) {
-    return this.authService.register(data);
+  // Login route: Authenticate and create session
+  @Post('/login')
+  async login(@Body() body: { email: string; password: string }) {
+    const user = await this.authService.validateUser(body.email, body.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return {
+      message: 'Login successful',
+      user, // Contains the authenticated user details
+    };
   }
 
-  // Add GET route for login
-  @Get('login')
-  @UseGuards(LocalAuthGuard) // Ensure this guard is used to authenticate
-  async login(@Req() req: Request, @Res() res: Response) {
-    // Handle login success
-    res.status(200).json({
-      message: 'Login successful',
-      user: req.user, // req.user will contain the authenticated user details after the guard runs
+  // Example of a protected route that requires the user to be logged in
+  @Get('/profile')
+  @UseGuards(AuthGuard('session'))
+  async getProfile(@Req() req: Request) {
+    return {
+      message: 'Access to profile',
+      user: req.user,
+    };
+  }
+
+  // Logout route: Invalidate session
+  @Post('/logout')
+  async logout(@Req() req: Request) {
+    req.logout((err) => {
+      if (err) {
+        throw err;
+      }
     });
+    return { message: 'Logout successful' };
   }
 }

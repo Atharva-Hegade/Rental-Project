@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configure session middleware
   app.use(
     session({
       secret: 'your-session-secret', // Use a more secure secret in production
@@ -15,6 +16,7 @@ async function bootstrap() {
       cookie: { maxAge: 3600000 }, // 1-hour session duration
     }),
   );
+
   app.use(passport.initialize());
   app.use(passport.session());
 

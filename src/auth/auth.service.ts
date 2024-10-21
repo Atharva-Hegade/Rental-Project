@@ -1,25 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../database/database.service';
+// src/auth/auth.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { UserService } from '../user/user.service'; // Import UserService
+import { User, Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly userService: UserService) {} // Inject UserService
 
-  async register(data: Prisma.UserCreateInput) {
-    return this.prisma.user.create({ data });
+  // Create a new user with password hashing
+  async create(createInput: Prisma.UserCreateInput): Promise<User> {
+    const hashedPassword = await bcrypt.hash(createInput.password, 10);
+    return this.userService.createUser({
+      ...createInput,
+      password: hashedPassword, // Store the hashed password
+    });
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    // Check if the user exists and the passwords match
-    if (user && user.password === password) {
-      return user; // You might want to hash passwords for security
+  // Validate user credentials for login
+  async validateUser(email: string, password: string): Promise<User> {
+    const user = await this.userService.getUserByEmail(email); // Use UserService to find user by email
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
     }
 
-    return null;
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return user; // Return the valid user
+  }
+
+  // Login functionality
+  async login(email: string, password: string): Promise<any> {
+    const user = await this.validateUser(email, password);
+    return { message: 'Login successful', userId: user.id };
+  }
+
+  // Logout functionality
+  async logout(): Promise<any> {
+    return { message: 'Logout successful' };
   }
 }
